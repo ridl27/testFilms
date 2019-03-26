@@ -6,7 +6,7 @@ import Form from './Components/Form';
 
 class App extends Component {
 	render() {
-	    return (
+		return (
 			<BrowserRouter>
 				<div className="App">
 					<Switch>
@@ -16,8 +16,8 @@ class App extends Component {
 					</Switch>
 				</div>
 			</BrowserRouter>
-	    );
-    }
+		);
+	}
 }
 
 export default App;
