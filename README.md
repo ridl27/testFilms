@@ -11,7 +11,7 @@ $ npm start
 ```
 After that application will start automatically. 
 
-Also you can run some tests:
+Also you can run some tests (go to root folder):
 ```
 $ npm test
 ```
