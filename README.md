@@ -10,3 +10,8 @@ $ npm install
 $ npm start
 ```
 After that application will start automatically. 
+
+Also you can run some tests:
+```
+$ npm test
+```
