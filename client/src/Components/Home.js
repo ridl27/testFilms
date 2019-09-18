@@ -3,100 +3,70 @@ import { Link } from 'react-router-dom';
 import { AppBar, Toolbar, InputBase, Button, Paper, Table, TableRow, TableHead, TableCell, TableBody } from '@material-ui/core';
 import { fade } from '@material-ui/core/styles/colorManipulator';
 import { withStyles } from '@material-ui/core/styles';
-import axios from 'axios';
+import { compose } from 'redux'
+import { connect } from 'react-redux';
 
 class Home extends Component {
-	state = {
-		films: []
-	}
-	componentDidMount(){
-		axios.get('/films').then(res => {  
-			let films = res.data;
-			this.setState({
-				films
-			});
-		})
-	}
+    state = {
+        initialFilms: this.props.films,
+        films: this.props.films,
+        reverse: false
+    }
+    componentWillReceiveProps(nextProps) {
+        this.setState({
+            initialFilms: nextProps.films,
+            films: nextProps.films,
+        });
+    }
 
-	handleFilter = (e) => {
-	    var table = document.getElementById('info-table');
-
-	    var phrase = e.target.value;
-	    var flag = false;
-	    for (var i = 1; i < table.rows.length; i++) {
-	        flag = false;
-	        for (var j = table.rows[i].cells.length - 1; j >= 0; j--) {
-	            flag = table.rows[i].cells[j].innerHTML.toLowerCase().indexOf(phrase) !== -1;
-	            if (flag) break;
-	        }
-	        if (flag) {
-	            table.rows[i].style.display = "";
-	        } else {
-	            table.rows[i].style.display = "none";
-	        }
-	    }
-	}
-
-    handleSort = (e) => {
-        if (e.target.tagName !== 'TH') return;
-        if (!e.target.hasAttribute('data-button')) return;
-        
-        if (e.target.getAttribute('data-sort') === null || e.target.getAttribute('data-sort') === 'down') e.target.setAttribute('data-sort', 'up');
-        else e.target.setAttribute('data-sort', 'down');
-
-        function sortGrid(colNum, type) {
-            var grid = document.getElementById("info-table");
-            var tbody = grid.getElementsByTagName('tbody')[0];
-            var rowsArray = [].slice.call(tbody.rows);
-            var compare;
-              switch (type) {
-                  case 'up':
-                    compare = function(rowA, rowB) {
-                      if (rowA.cells[colNum].outerText.toLowerCase() > rowB.cells[colNum].outerText.toLowerCase()) return 1;
-                         else return -1;
-                    }
-                    break;
-                  case 'down':
-                    compare = function(rowA, rowB) {
-                      if (rowA.cells[colNum].outerText.toLowerCase() < rowB.cells[colNum].outerText.toLowerCase()) return 1;
-                         else return -1;
-                    }
-                    break;
-                  default: break;
-              }
-            rowsArray.sort(compare);
-      
-            grid.removeChild(tbody);
-            for (var i = 0; i < rowsArray.length; i++) {
-              tbody.appendChild(rowsArray[i]);
+    handleSort = (field) => () => {
+        let { films: currentFilms, reverse } = this.state;
+        let films = currentFilms.sort(function (a, b) {
+            if (a[field].toString().toLowerCase() > b[field].toString().toLowerCase()) {
+                if (!reverse) { return 1; } else {
+                    return -1;
+                }
             }
-            grid.appendChild(tbody);
-        }
-        sortGrid(e.target.cellIndex, e.target.getAttribute('data-sort'));
+            if (a[field].toString().toLowerCase() < b[field].toString().toLowerCase()) {
+                if (reverse) { return 1; } else {
+                    return -1;
+                }
+            }
+            return 0;
+        });
+        if (this.state.reverse) { this.setState({ reverse: false }); } else { this.setState({ reverse: true }); }
+        this.setState({ films });
     };
 
-	render() {
-		const { classes } = this.props;
+    handleFilter = (e) => {
+        var updatedList = this.state.initialFilms;
+        updatedList = updatedList.filter(function (film) {
+            return film.title.toLowerCase().search(
+                e.target.value.toLowerCase()) !== -1;
+        });
+        this.setState({ films: updatedList });
+    }
 
-		let films = this.state.films;
-		// console.log(films);
-
-		films = films.map(film => {
-			let stars = film.stars.map(star => {
-				return star.name
-			})
-			return (
-		        <TableRow key={film._id}>
+    render() {
+        const { classes } = this.props;
+        let films = this.state.films;
+        console.log(films);
+        films = films ? films.map(film => {
+            let stars = film.stars.map(star => {
+                return star.name
+            })
+            return (
+                <TableRow key={film._id}>
                     <TableCell component="th" scope="row">
                         <Link to={'/' + film._id}>{film.title}</Link>
                     </TableCell>
-		            <TableCell>{film.year}</TableCell>
-		            <TableCell>{film.format}</TableCell>
+                    <TableCell>{film.year}</TableCell>
+                    <TableCell>{film.format}</TableCell>
                     <TableCell>{stars.join(", ")}</TableCell>
-		        </TableRow>
-		    )
-		});
-	    return (
+                </TableRow>
+            )
+        }) : null;
+        return (
             <div className="App">
                 <div className={classes.root}>
                     <AppBar position="static">
@@ -118,13 +88,13 @@ class Home extends Component {
                     </AppBar>
                 </div>
                 <Paper>
-                    <Table id="info-table" onClick={this.handleSort}>
+                    <Table>
                         <TableHead>
                             <TableRow>
-                                <TableCell data-button="sort">Movie</TableCell>
-                                <TableCell>Release Year</TableCell>
-                                <TableCell>Format</TableCell>
-                                <TableCell>Stars</TableCell>
+                                <TableCell onClick={this.handleSort('title')}>Movie</TableCell>
+                                <TableCell onClick={this.handleSort('year')}>Release Year</TableCell>
+                                <TableCell onClick={this.handleSort('format')}>Format</TableCell>
+                                <TableCell onClick={this.handleSort('stars')}>Stars</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -133,51 +103,58 @@ class Home extends Component {
                     </Table>
                 </Paper>
             </div>
-	    );
-  }
+        );
+    }
 }
 
 const styles = theme => ({
     root: {
-      width: '100%',
-      overflowX: 'auto',
+        width: '100%',
+        overflowX: 'auto',
     },
     table: {
-      minWidth: 700,
+        minWidth: 700,
     },
     search: {
-      position: 'relative',
-      borderRadius: theme.shape.borderRadius,
-      backgroundColor: fade(theme.palette.common.white, 0.15),
-      '&:hover': {
-        backgroundColor: fade(theme.palette.common.white, 0.25),
-      },
-      marginRight: theme.spacing.unit * 2,
-      marginLeft: 0,
-      width: '100%',
-      [theme.breakpoints.up('sm')]: {
-        marginLeft: theme.spacing.unit * 3,
-        width: 'auto',
-      },
+        position: 'relative',
+        borderRadius: theme.shape.borderRadius,
+        backgroundColor: fade(theme.palette.common.white, 0.15),
+        '&:hover': {
+            backgroundColor: fade(theme.palette.common.white, 0.25),
+        },
+        marginRight: theme.spacing.unit * 2,
+        marginLeft: 0,
+        width: '100%',
+        [theme.breakpoints.up('sm')]: {
+            marginLeft: theme.spacing.unit * 3,
+            width: 'auto',
+        },
     },
     inputRoot: {
-      color: 'inherit',
-      width: '100%',
+        color: 'inherit',
+        width: '100%',
     },
     inputInput: {
-      paddingTop: theme.spacing.unit,
-      paddingRight: theme.spacing.unit,
-      paddingBottom: theme.spacing.unit,
-      paddingLeft: theme.spacing.unit * 3,
-      transition: theme.transitions.create('width'),
-      width: '100%',
-      [theme.breakpoints.up('md')]: {
-          width: 200,
-      },
-      },
-      button: {
-          margin: theme.spacing.unit,
-      }
-  });
+        paddingTop: theme.spacing.unit,
+        paddingRight: theme.spacing.unit,
+        paddingBottom: theme.spacing.unit,
+        paddingLeft: theme.spacing.unit * 3,
+        transition: theme.transitions.create('width'),
+        width: '100%',
+        [theme.breakpoints.up('md')]: {
+            width: 200,
+        },
+    },
+    button: {
+        margin: theme.spacing.unit,
+    }
+});
 
-export default withStyles(styles)(Home);
+const mapStateToProps = (state) => {
+    return { films: state.films }
+}
+
+export default compose(
+    withStyles(styles),
+    connect(mapStateToProps)
+)(Home)

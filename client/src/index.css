@@ -16,7 +16,7 @@ a {
   text-decoration: none;
 }
 
-th[data-button]:hover{
+th:hover{
   cursor: pointer;
 }
 

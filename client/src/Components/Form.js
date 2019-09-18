@@ -10,7 +10,9 @@ class Form extends Component {
         title: '',
         year: '',
         format: '',
-        stars: {}
+        stars: {},
+        numOfFields: '',
+        file: null
 	}
     handleChange = name => event => {
         if (name === 'stars') {
@@ -25,22 +27,55 @@ class Form extends Component {
     };
     handleSubmit = (e) => {
         e.preventDefault();
-        let obj = {};
-        for (let key in this.state) {
-            obj[key] = this.state[key];
-        }
-        let arr = [];
-        for (let key in this.state.stars) {
-            arr.push({name: this.state.stars[key]});
-        }
-        obj.stars = arr;
-        axios.post('/films', obj).catch(function (error) {
+        axios.post('/films', this.state).catch(function (error) {
             console.log(error);
         });
-        this.props.history.push('/');
-	};
+        this.setState({title: '', year: '', format: '', stars: {}, numOfFields: ''});
+        alert("Successfully added!");
+    };
+    handleCheckExt = (e) => {
+        if(document.getElementById('uploadFile').upload.value.lastIndexOf(".txt") === -1) {
+            alert("Please upload only .txt extention file");
+            document.getElementById('uploadFile').upload.value = '';
+            return;
+        }
+        this.setState({file: e.target.files[0]});
+    } 
+    handleUpload = (e) => {
+        e.preventDefault();
+        if(e.target.upload.value === '') {
+            alert("Please upload .txt extention file"); 
+            return;
+        }
+        let formData = new FormData();
+        formData.append('file', this.state.file);
+        let config = {
+            headers: {
+                'content-type': 'multipart/form-data'
+            }
+        };
+        axios.post('/films/upload', formData, config).catch(function (error) {
+            console.log(error);
+        });
+        e.target.upload.value = '';
+        alert("Successfully uploaded!");
+    } 
 
     render() {       
+        var fields = [];
+        for (let i=0; i<this.state.numOfFields; i++){
+            fields.push(
+                <TextField
+                    required
+                    label={`Star ${i+1}`}
+                    id={i.toString()}
+                    onChange={this.handleChange('stars')}
+                    variant="outlined"
+                    style={{margin: 15}}
+                    key={i}
+                />
+            );
+        }
         return (
             <MuiThemeProvider theme={theme}>
                 <>
@@ -48,7 +83,6 @@ class Form extends Component {
                     <form autoComplete="off" onSubmit={this.handleSubmit}>
                         <TextField
                             required
-                            id="outlined-required"
                             label="Movie"
                             value={this.state.title}
                             onChange={this.handleChange('title')}
@@ -57,7 +91,6 @@ class Form extends Component {
                         />
                         <TextField
                             required
-                            id="outlined-required"
                             label="Release Year"
                             value={this.state.year}
                             onChange={this.handleChange('year')}
@@ -67,7 +100,6 @@ class Form extends Component {
                         />
                         <TextField
                             required
-                            id="outlined-required"
                             label="Format"
                             value={this.state.format}
                             onChange={this.handleChange('format')}
@@ -76,28 +108,14 @@ class Form extends Component {
                         />
                         <TextField
                             required
-                            id='0'
-                            label="Star 1"
-                            onChange={this.handleChange('stars')}
+                            label="Number of Stars"
+                            type="number"
+                            value={this.state.numOfFields}
+                            onChange={this.handleChange('numOfFields')}
                             variant="outlined"
                             style={{margin: 15}}
                         />
-                        <TextField
-                            required
-                            id='1'
-                            label="Star 2"
-                            onChange={this.handleChange('stars')}
-                            variant="outlined"
-                            style={{margin: 15}}
-                        />
-                        <TextField
-                            required
-                            id='2'
-                            label="Star 3"
-                            onChange={this.handleChange('stars')}
-                            variant="outlined"
-                            style={{margin: 15}}
-                        />
+                        {fields}
                         <br/>
                         <Button
                             color="primary"
@@ -108,8 +126,8 @@ class Form extends Component {
                         </Button>
                     </form>
 
-                    <form action="films/upload" method="post" encType="multipart/form-data" style={{margin: 15}}>
-                        <input type="file" name="upload"/>
+                    <form id="uploadFile" name="uploadFile" action="films/upload" method="post" encType="multipart/form-data" style={{margin: 15}} onSubmit={this.handleUpload}>
+                        <input type="file" name="upload" onChange={this.handleCheckExt}/>
                         <Button type="submit" variant="contained" color="primary">Send</Button>
                     </form>
                     <Link to={'/'}><Button variant="outlined">Go Back</Button></Link>
@@ -126,6 +144,6 @@ const theme = createMuiTheme({
     palette: {
       primary: green,
     },
-  });
+});
 
 export default Form

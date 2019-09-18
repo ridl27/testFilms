@@ -1,46 +1,51 @@
 import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
-import {Button, Card, CardContent, Typography} from '@material-ui/core';
+import { Button, Card, CardContent, Typography } from '@material-ui/core';
 import DeleteIcon from '@material-ui/icons/Delete';
 import { withStyles } from '@material-ui/core/styles';
 import axios from 'axios';
+import { compose } from 'redux'
+import { connect } from 'react-redux';
 
 class Film extends Component {
     state = {
-		film: {}
-	}
-    componentDidMount(){
-		axios.get('/films/'+ this.props.match.params.film_id).then(res => { 
-            let film = res.data[0];
-			this.setState({
-				film
-			});
-		})
+        films: this.props.films
     }
-    
-    handleDelete = () => {
-        axios.delete('/films/'+ this.state.film._id).catch(function (error) {
-            console.log(error);
+    componentWillReceiveProps(nextProps) {
+        this.setState({
+            films: nextProps.films
         });
-        this.props.history.push('/');
+    }
+
+    handleDelete = () => {
+        if (window.confirm('Are you sure? This action can not be undone.')) {
+            axios.delete('/films/' + this.state.film._id).catch(function (error) {
+                console.log(error);
+            });
+            this.props.history.push('/');
+        }
     }
 
     render() {
         const { classes } = this.props;
-        let stars = this.state.film.stars ? ( this.state.film.stars.map(star => {
+        let film = this.state.films ? this.state.films.filter(film => {
+            return film._id === this.props.match.params.film_id;
+        })[0] : {};
+        console.log(film);
+        let stars = film.stars ? (film.stars.map(star => {
             return star.name
         }).join(", ")) : '';
         return (
             <Card className={classes.card}>
                 <CardContent>
                     <Typography className={classes.title} gutterBottom>
-                        {this.state.film.title}
+                        {film.title}
                     </Typography>
                     <Typography component="p">
-                        {this.state.film.year}
+                        {film.year}
                     </Typography>
                     <Typography component="p">
-                        {this.state.film.format}
+                        {film.format}
                     </Typography>
                     <Typography component="p">
                         {stars}
@@ -60,7 +65,7 @@ const styles = theme => ({
         margin: theme.spacing.unit,
     },
     rightIcon: {
-      marginLeft: theme.spacing.unit,
+        marginLeft: theme.spacing.unit,
     },
     card: {
         maxWidth: 275,
@@ -72,6 +77,13 @@ const styles = theme => ({
         fontSize: 16,
         fontWeight: "bold"
     }
-  });
+});
 
-export default withStyles(styles)(Film)
+const mapStateToProps = (state) => {
+    return { films: state.films }
+}
+
+export default compose(
+    withStyles(styles),
+    connect(mapStateToProps)
+)(Film)
